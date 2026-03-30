@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PLUS
+  GOLD
+}
+
+enum Vibe {
+  ENCENDIDO
+  TRANQUILO
+  CREATIVO
+  SOCIAL
+}
+
+enum EstadoMatch {
+  ACTIVO
+  BLOQUEADO
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  nombre          String
+  fechaNacimiento DateTime
+  bio             String?
+  vibeActual      Vibe      @default(SOCIAL)
+  plan            Plan      @default(FREE)
+  ciudad          String?
+  activo          Boolean   @default(true)
+  perfilCompleto  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fotos           Photo[]
+  likesEnviados   Like[]          @relation("LikeFrom")
+  likesRecibidos  Like[]          @relation("LikeTo")
+  matchesComoA    Match[]         @relation("MatchUserA")
+  matchesComoB    Match[]         @relation("MatchUserB")
+  mensajes        Message[]
+  likeContadores  LikeDailyCount[]
+  suscripcion     Subscription?
+
+  @@map("users")
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  publicId  String   // ID en Cloudinary para poder borrarla
+  orden     Int      @default(0)
+  esPortada Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime @default(now())
+
+  fromUser   User     @relation("LikeFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("LikeTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@map("likes")
+}
+
+model Match {
+  id        String      @id @default(cuid())
+  userAId   String
+  userBId   String
+  estado    EstadoMatch @default(ACTIVO)
+  createdAt DateTime    @default(now())
+
+  userA     User        @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User        @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  mensajes  Message[]
+
+  @@unique([userAId, userBId])
+  @@map("matches")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  matchId   String
+  senderId  String
+  contenido String
+  leido     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// Contador de likes por día — se resetea a medianoche
+model LikeDailyCount {
+  id        String   @id @default(cuid())
+  userId    String
+  fecha     String   // formato: "2025-01-15" (YYYY-MM-DD)
+  count     Int      @default(0)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fecha])
+  @@map("like_daily_counts")
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  plan              Plan
+  stripeCustomerId  String?
+  stripeSubId       String?
+  inicioAt          DateTime @default(now())
+  venceAt           DateTime?
+  activa            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
