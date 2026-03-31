@@ -3,17 +3,17 @@ import { z } from 'zod'
 export const registerSchema = z.object({
   nombre: z
     .string()
-    .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .max(50, 'El nombre es muy largo'),
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name is too long'),
   email: z
     .string()
-    .email('Correo electrónico inválido')
+    .email('Invalid email address')
     .toLowerCase(),
   password: z
     .string()
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
-    .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
-    .regex(/[0-9]/, 'Debe contener al menos un número'),
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
   fechaNacimiento: z
     .string()
     .refine((val) => {
@@ -23,19 +23,18 @@ export const registerSchema = z.object({
       const cumpleEsteAnio = new Date(hoy.getFullYear(), fecha.getMonth(), fecha.getDate())
       const edadReal = hoy >= cumpleEsteAnio ? edad : edad - 1
       return edadReal >= 18
-    }, 'Debes ser mayor de 18 años para registrarte'),
-  ciudad: z.string().min(2).max(80).optional(),
+    }, 'You must be at least 18 years old to register'),
+  ciudad: z.string().min(2, 'City must be at least 2 characters').max(80).optional().or(z.literal('')),
 })
 
 export const loginSchema = z.object({
-  email: z.string().email('Correo electrónico inválido').toLowerCase(),
-  password: z.string().min(1, 'Ingresa tu contraseña'),
+  email: z.string().email('Invalid email address').toLowerCase(),
+  password: z.string().min(1, 'Please enter your password'),
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 
-// Calcula edad en años desde una fecha
 export function calcularEdad(fechaNacimiento: Date): number {
   const hoy = new Date()
   const edad = hoy.getFullYear() - fechaNacimiento.getFullYear()
