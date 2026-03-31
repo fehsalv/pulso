@@ -5,6 +5,7 @@ import { uploadProfilePhoto, deletePhoto } from '@/lib/cloudinary'
 const MAX_PHOTOS = 6
 const MIN_PHOTOS = 2
 const MAX_SIZE_MB = 10
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,10 +21,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file received' }, { status: 400 })
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only images are allowed' }, { status: 400 })
+    // Validate MIME type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Only JPG, PNG and WEBP images are allowed' },
+        { status: 400 }
+      )
     }
 
+    // Validate file size
     const sizeMB = file.size / (1024 * 1024)
     if (sizeMB > MAX_SIZE_MB) {
       return NextResponse.json(
@@ -32,6 +38,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate magic bytes
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8
+    const isPng = buffer[0] === 0x89 && buffer[1] === 0x50
+    const isWebp = buffer.slice(8, 12).toString() === 'WEBP'
+
+    if (!isJpeg && !isPng && !isWebp) {
+      return NextResponse.json(
+        { error: 'Invalid image file' },
+        { status: 400 }
+      )
+    }
+
+    // Check photo limit
     const currentCount = await prisma.photo.count({ where: { userId } })
     if (currentCount >= MAX_PHOTOS) {
       return NextResponse.json(
@@ -40,7 +60,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
+    // Upload to Cloudinary
     const { url, publicId } = await uploadProfilePhoto(buffer, userId)
 
     const isCover = currentCount === 0
