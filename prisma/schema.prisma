@@ -137,3 +137,13 @@ model Subscription {
 
   @@map("subscriptions")
 }
+
+model RateLimit {
+  id           String    @id @default(cuid())
+  key          String    @unique
+  attempts     Int       @default(1)
+  blockedUntil DateTime?
+  lastAttempt  DateTime  @default(now())
+
+  @@map("rate_limits")
+}

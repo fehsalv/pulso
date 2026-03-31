@@ -3,22 +3,50 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { signToken } from '@/lib/jwt'
 import { loginSchema } from '@/lib/validations'
+import { checkRateLimit, recordFailedAttempt, resetRateLimit } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown'
     const body = await request.json()
 
     const parsed = loginSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues?.[0]?.message || 'Datos inválidos' },
+        { error: parsed.error.issues?.[0]?.message || 'Invalid data' },
         { status: 400 }
       )
     }
 
     const { email, password } = parsed.data
 
-    // Buscar usuario
+    // Check rate limit by IP and email
+    const ipKey = `login:ip:${ip}`
+    const emailKey = `login:email:${email}`
+
+    const ipLimit = await checkRateLimit(ipKey)
+    if (!ipLimit.allowed) {
+      const minutes = Math.ceil(
+        (ipLimit.blockedUntil!.getTime() - Date.now()) / 60000
+      )
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${minutes} minutes.` },
+        { status: 429 }
+      )
+    }
+
+    const emailLimit = await checkRateLimit(emailKey)
+    if (!emailLimit.allowed) {
+      const minutes = Math.ceil(
+        (emailLimit.blockedUntil!.getTime() - Date.now()) / 60000
+      )
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${minutes} minutes.` },
+        { status: 429 }
+      )
+    }
+
+    // Find user
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -27,29 +55,35 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
+      await recordFailedAttempt(ipKey)
+      await recordFailedAttempt(emailKey)
       return NextResponse.json(
-        { error: 'Correo o contraseña incorrectos' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
 
     if (!user.activo) {
       return NextResponse.json(
-        { error: 'Tu cuenta ha sido suspendida. Contacta soporte.' },
+        { error: 'Your account has been suspended. Contact support.' },
         { status: 403 }
       )
     }
 
-    // Verificar contraseña
     const passwordOk = await bcrypt.compare(password, user.passwordHash)
     if (!passwordOk) {
+      await recordFailedAttempt(ipKey)
+      await recordFailedAttempt(emailKey)
       return NextResponse.json(
-        { error: 'Correo o contraseña incorrectos' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
 
-    // Generar JWT
+    // Success — reset rate limit
+    await resetRateLimit(ipKey)
+    await resetRateLimit(emailKey)
+
     const token = signToken({
       userId: user.id,
       email: user.email,
@@ -66,7 +100,6 @@ export async function POST(request: NextRequest) {
         perfilCompleto: user.perfilCompleto,
         fotoPortada: user.fotos[0]?.url || null,
       },
-      // Redirigir a subir fotos si el perfil no está completo
       redirectTo: user.perfilCompleto ? '/explore' : '/register/photos',
     })
 
@@ -82,7 +115,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[LOGIN]', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
