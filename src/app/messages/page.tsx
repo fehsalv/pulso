@@ -56,7 +56,7 @@ export default function MessagesPage() {
               className="px-6 py-3 rounded-xl text-white font-semibold"
               style={{ background: 'linear-gradient(135deg, #FF4D6D, #FF8147)' }}
             >
-              See who's online
+              See who&apos;s online
             </button>
           </div>
         ) : (
@@ -69,9 +69,12 @@ export default function MessagesPage() {
                 </p>
                 <div className="flex flex-col gap-2">
                   {received.map((msg) => (
-                    <div key={msg.id}
-                         className="flex items-start gap-3 bg-[#12121A] border rounded-2xl p-4 transition-all"
-                         style={{ borderColor: msg.read ? 'rgba(255,255,255,0.05)' : 'rgba(255,77,109,0.3)' }}>
+                    <div
+                      key={msg.id}
+                      onClick={() => router.push(`/messages/${msg.from.id}`)}
+                      className="flex items-start gap-3 bg-[#12121A] border rounded-2xl p-4 transition-all cursor-pointer hover:border-white/20"
+                      style={{ borderColor: msg.read ? 'rgba(255,255,255,0.05)' : 'rgba(255,77,109,0.3)' }}
+                    >
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1C1C28] flex-shrink-0">
                         {msg.from.coverPhoto ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -94,7 +97,7 @@ export default function MessagesPage() {
                             </span>
                           </div>
                         </div>
-                        <p className="text-[#8884A8] text-sm">{msg.content}</p>
+                        <p className="text-[#8884A8] text-sm truncate">{msg.content}</p>
                       </div>
                     </div>
                   ))}
@@ -110,8 +113,11 @@ export default function MessagesPage() {
                 </p>
                 <div className="flex flex-col gap-2">
                   {sent.map((msg) => (
-                    <div key={msg.id}
-                         className="flex items-start gap-3 bg-[#12121A] border border-white/5 rounded-2xl p-4">
+                    <div
+                      key={msg.id}
+                      onClick={() => router.push(`/messages/${msg.from.id}`)}
+                      className="flex items-start gap-3 bg-[#12121A] border border-white/5 rounded-2xl p-4 cursor-pointer hover:border-white/20 transition-all"
+                    >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-white font-semibold text-sm">To: {msg.from.name}</span>
@@ -119,7 +125,7 @@ export default function MessagesPage() {
                             {msg.read ? '✓✓ Read' : '✓ Sent'}
                           </span>
                         </div>
-                        <p className="text-[#8884A8] text-sm">{msg.content}</p>
+                        <p className="text-[#8884A8] text-sm truncate">{msg.content}</p>
                       </div>
                     </div>
                   ))}
