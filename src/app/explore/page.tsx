@@ -182,7 +182,7 @@ export default function ExplorePage() {
         <div className="w-full max-w-sm">
           <div className="bg-[#12121A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
             {/* Photo */}
-            <div className="relative w-full aspect-[3/4] bg-[#1C1C28]">
+            <div className="relative w-full bg-[#1C1C28]" style={{ height: '55vh' }}>
               {profile.coverPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
