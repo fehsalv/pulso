@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cannot message yourself' }, { status: 400 })
     }
 
-    // Check if target user allows direct messages
     const targetUser = await prisma.user.findUnique({
       where: { id: toUserId },
       select: { allowDirectMessages: true, activo: true },
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check daily limit
     const today = new Date().toISOString().split('T')[0]
     const dailyCount = await prisma.directMessageDailyCount.findUnique({
       where: { userId_fecha: { userId, fecha: today } },
@@ -55,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create message and update counter
     const [message] = await prisma.$transaction([
       prisma.directMessage.create({
         data: { fromUserId: userId, toUserId, content: content.trim() },
@@ -105,12 +102,22 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        toUser: {
+          select: {
+            id: true,
+            nombre: true,
+            fotos: {
+              where: { esPortada: true },
+              select: { url: true },
+              take: 1,
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
     })
 
-    // Mark received messages as read
     await prisma.directMessage.updateMany({
       where: { toUserId: userId, read: false },
       data: { read: true },
@@ -127,6 +134,11 @@ export async function GET(request: NextRequest) {
           id: m.fromUser.id,
           name: m.fromUser.nombre,
           coverPhoto: m.fromUser.fotos[0]?.url || null,
+        },
+        to: {
+          id: m.toUser.id,
+          name: m.toUser.nombre,
+          coverPhoto: m.toUser.fotos[0]?.url || null,
         },
       })),
     })
