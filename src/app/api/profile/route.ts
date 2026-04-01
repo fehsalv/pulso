@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
         vibeActual: true,
         ciudad: true,
         plan: true,
+        allowDirectMessages: true,
         fotos: {
           orderBy: { orden: 'asc' },
           select: {
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
         vibe: user.vibeActual,
         city: user.ciudad,
         plan: user.plan,
+        allowDirectMessages: user.allowDirectMessages,
         photos: user.fotos.map((f) => ({
           id: f.id,
           url: f.url,
@@ -62,7 +64,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { bio, city, vibe } = await request.json()
+    const { bio, city, vibe, allowDirectMessages } = await request.json()
 
     const validVibes = ['ENCENDIDO', 'TRANQUILO', 'CREATIVO', 'SOCIAL']
     if (vibe && !validVibes.includes(vibe)) {
@@ -75,6 +77,7 @@ export async function PATCH(request: NextRequest) {
         ...(bio !== undefined && { bio: bio.trim() || null }),
         ...(city !== undefined && { ciudad: city.trim() || null }),
         ...(vibe && { vibeActual: vibe }),
+        ...(allowDirectMessages !== undefined && { allowDirectMessages }),
       },
     })
 
@@ -84,6 +87,7 @@ export async function PATCH(request: NextRequest) {
         bio: updated.bio,
         city: updated.ciudad,
         vibe: updated.vibeActual,
+        allowDirectMessages: updated.allowDirectMessages,
       },
     })
   } catch (error) {

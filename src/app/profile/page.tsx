@@ -11,6 +11,7 @@ interface UserProfile {
   vibe: string
   city: string | null
   plan: string
+  allowDirectMessages: boolean
   photos: { id: string; url: string; isCover: boolean }[]
 }
 
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('')
   const [city, setCity] = useState('')
   const [vibe, setVibe] = useState('SOCIAL')
+  const [allowDM, setAllowDM] = useState(true)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function ProfilePage() {
           setBio(data.profile.bio || '')
           setCity(data.profile.city || '')
           setVibe(data.profile.vibe)
+          setAllowDM(data.profile.allowDirectMessages ?? true)
         }
       })
       .finally(() => setLoading(false))
@@ -51,7 +54,7 @@ export default function ProfilePage() {
       await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bio, city, vibe }),
+        body: JSON.stringify({ bio, city, vibe, allowDirectMessages: allowDM }),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -182,9 +185,49 @@ export default function ProfilePage() {
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="Your city"
+            placeholder="Your city (optional)"
             className="w-full bg-[#12121A] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FF4D6D]/60 transition-colors"
           />
+        </div>
+
+        {/* Privacy */}
+        <div className="mb-6">
+          <p className="text-xs text-[#8884A8] mb-3 font-medium uppercase tracking-wider">Privacy</p>
+          <div className="bg-[#12121A] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-white text-sm font-medium">Allow direct messages</p>
+              <p className="text-[#8884A8] text-xs mt-0.5">
+                Let people message you without a match
+              </p>
+            </div>
+            <button
+              onClick={() => setAllowDM((prev) => !prev)}
+              className="relative w-11 h-6 rounded-full transition-all flex-shrink-0 ml-4"
+              style={{
+                background: allowDM ? '#FF4D6D' : '#1C1C28',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              <span
+                className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                style={{ left: allowDM ? '22px' : '2px' }}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Messages inbox link */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push('/messages')}
+            className="w-full bg-[#12121A] border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-white/10 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg">💌</span>
+              <p className="text-white text-sm font-medium">Direct messages inbox</p>
+            </div>
+            <span className="text-[#8884A8] text-sm">→</span>
+          </button>
         </div>
 
         {/* Save button */}
