@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { path: '/profile', icon: '👤', label: 'Profile' },
 ]
 
-const HIDDEN_ON = ['/login', '/register']
+const HIDDEN_ON = ['/login', '/register', '/chat', '/messages/']
 
 export default function BottomNav() {
   const pathname = usePathname()

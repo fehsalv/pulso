@@ -34,7 +34,6 @@ export default function ChatPage() {
 
   useEffect(() => {
     fetchMessages()
-    // Poll for new messages every 3 seconds
     const interval = setInterval(fetchMessages, 3000)
     return () => clearInterval(interval)
   }, [matchId])
@@ -60,12 +59,10 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     if (!input.trim() || sending) return
-
     setSending(true)
     const content = input.trim()
     setInput('')
 
-    // Optimistic update
     const tempMessage: Message = {
       id: 'temp-' + Date.now(),
       content,
@@ -82,16 +79,13 @@ export default function ChatPage() {
         body: JSON.stringify({ content }),
       })
       const data = await res.json()
-
       if (res.ok) {
-        // Replace temp message with real one
         setMessages((prev) =>
           prev.map((m) => (m.id === tempMessage.id ? data.message : m))
         )
       }
     } catch (error) {
       console.error(error)
-      // Remove temp message on error
       setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id))
     } finally {
       setSending(false)
@@ -105,12 +99,8 @@ export default function ChatPage() {
     }
   }
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatTime = (dateStr: string) =>
+    new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   if (loading) {
     return (
@@ -121,35 +111,30 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0F] flex flex-col">
+    <div className="fixed inset-0 bg-[#0A0A0F] flex flex-col">
 
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-[#12121A] border-b border-white/5 sticky top-0 z-10">
+      <div className="flex items-center gap-3 p-4 flex-shrink-0"
+           style={{ background: '#12121A', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <button
           onClick={() => router.push('/matches')}
-          className="text-[#8884A8] hover:text-white transition-colors text-lg"
+          className="text-[#8884A8] hover:text-white transition-colors text-xl w-8"
         >
           ←
         </button>
-
         <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1C1C28] flex-shrink-0">
           {matchInfo?.other.coverPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={matchInfo.other.coverPhoto}
-              alt={matchInfo.other.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={matchInfo.other.coverPhoto} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[#FF4D6D] font-bold">
               {matchInfo?.other.name[0].toUpperCase()}
             </div>
           )}
         </div>
-
         <div>
           <p className="text-white font-semibold text-sm">{matchInfo?.other.name}</p>
-          <p className="text-[#8884A8] text-xs">Match</p>
+          <p className="text-[#8884A8] text-xs">Match ✓</p>
         </div>
       </div>
 
@@ -165,28 +150,20 @@ export default function ChatPage() {
           </div>
         ) : (
           messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
-            >
+            <div key={message.id} className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                  message.isOwn
-                    ? 'text-white rounded-br-sm'
-                    : 'bg-[#1C1C28] text-white rounded-bl-sm'
-                }`}
-                style={
-                  message.isOwn
-                    ? { background: 'linear-gradient(135deg, #FF4D6D, #FF8147)' }
-                    : {}
-                }
+                className="max-w-[75%] px-4 py-2.5 text-sm text-white"
+                style={{
+                  background: message.isOwn
+                    ? 'linear-gradient(135deg, #FF4D6D, #FF8147)'
+                    : '#1C1C28',
+                  borderRadius: message.isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                }}
               >
                 <p className="leading-relaxed">{message.content}</p>
                 <p className={`text-[10px] mt-1 ${message.isOwn ? 'text-white/60 text-right' : 'text-[#8884A8]'}`}>
                   {formatTime(message.createdAt)}
-                  {message.isOwn && (
-                    <span className="ml-1">{message.read ? '✓✓' : '✓'}</span>
-                  )}
+                  {message.isOwn && <span className="ml-1">{message.read ? '✓✓' : '✓'}</span>}
                 </p>
               </div>
             </div>
@@ -196,7 +173,8 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-[#12121A] border-t border-white/5">
+      <div className="flex-shrink-0 p-4"
+           style={{ background: '#12121A', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-3">
           <input
             type="text"
@@ -204,18 +182,18 @@ export default function ChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Write a message..."
-            className="flex-1 bg-[#1C1C28] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FF4D6D]/60 transition-colors"
+            className="flex-1 bg-[#1C1C28] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm outline-none focus:border-[#FF4D6D]/60 transition-colors"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || sending}
-            className="w-11 h-11 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 flex-shrink-0"
+            className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all disabled:opacity-40 flex-shrink-0 hover:scale-105"
             style={{ background: 'linear-gradient(135deg, #FF4D6D, #FF8147)' }}
           >
             ➤
           </button>
         </div>
       </div>
-    </main>
+    </div>
   )
 }
