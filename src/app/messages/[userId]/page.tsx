@@ -14,6 +14,11 @@ interface Message {
     name: string
     coverPhoto: string | null
   }
+  to: {
+    id: string
+    name: string
+    coverPhoto: string | null
+  }
 }
 
 export default function DMConversationPage() {
@@ -22,7 +27,7 @@ export default function DMConversationPage() {
   const targetUserId = params.userId as string
 
   const [messages, setMessages] = useState<Message[]>([])
-  const [targetUser, setTargetUser] = useState<{ name: string; coverPhoto: string | null } | null>(null)
+  const [targetUser, setTargetUser] = useState<{ id: string; name: string; coverPhoto: string | null } | null>(null)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [remaining, setRemaining] = useState(10)
@@ -36,16 +41,19 @@ export default function DMConversationPage() {
       const data = await res.json()
       if (res.ok) {
         const all: Message[] = data.messages || []
+
+        // Filter messages between current user and target
         const conversation = all.filter(
-          (m) => m.from.id === targetUserId || (!m.isOwn && m.from.id === targetUserId) || (m.isOwn)
+          (m) => m.from.id === targetUserId || m.to.id === targetUserId
         )
-        // Filter only messages between current user and target
-        const filtered = all.filter(
-          (m) => m.from.id === targetUserId || (m.isOwn)
-        )
-        setMessages(filtered)
-        const other = all.find((m) => m.from.id === targetUserId)
-        if (other) setTargetUser(other.from)
+        setMessages(conversation)
+
+        // Get target user info from any message in the conversation
+        const anyMsg = conversation.find((m) => m.from.id === targetUserId || m.to.id === targetUserId)
+        if (anyMsg) {
+          const other = anyMsg.from.id === targetUserId ? anyMsg.from : anyMsg.to
+          setTargetUser(other)
+        }
       }
     } catch (error) {
       console.error(error)
@@ -114,11 +122,11 @@ export default function DMConversationPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0F] flex flex-col">
+    <div className="fixed inset-0 bg-[#0A0A0F] flex flex-col">
 
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 sticky top-0 z-10"
-           style={{ background: 'rgba(18,18,26,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center gap-3 p-4 flex-shrink-0"
+           style={{ background: '#12121A', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <button onClick={() => router.push('/messages')}
                 className="text-[#8884A8] hover:text-white transition-colors text-xl w-8">
           ←
@@ -140,7 +148,7 @@ export default function DMConversationPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 pb-2 flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
         {messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <div className="text-4xl mb-3">👋</div>
@@ -151,7 +159,7 @@ export default function DMConversationPage() {
           messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
-                className="max-w-[75%] px-4 py-2.5 rounded-2xl text-sm"
+                className="max-w-[75%] px-4 py-2.5 text-sm text-white"
                 style={{
                   background: msg.isOwn
                     ? 'linear-gradient(135deg, #FF4D6D, #FF8147)'
@@ -159,7 +167,7 @@ export default function DMConversationPage() {
                   borderRadius: msg.isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                 }}
               >
-                <p className="text-white leading-relaxed">{msg.content}</p>
+                <p className="leading-relaxed">{msg.content}</p>
                 <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/60 text-right' : 'text-[#8884A8]'}`}>
                   {formatTime(msg.createdAt)}
                   {msg.isOwn && <span className="ml-1">{msg.read ? ' ✓✓' : ' ✓'}</span>}
@@ -179,8 +187,8 @@ export default function DMConversationPage() {
       )}
 
       {/* Input */}
-      <div className="p-4 pb-6"
-           style={{ background: 'rgba(18,18,26,0.95)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex-shrink-0 p-4"
+           style={{ background: '#12121A', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-3">
           <input
             type="text"
@@ -207,6 +215,6 @@ export default function DMConversationPage() {
           </p>
         )}
       </div>
-    </main>
+    </div>
   )
 }
